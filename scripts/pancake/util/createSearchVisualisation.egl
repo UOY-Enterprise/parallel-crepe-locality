@@ -1,0 +1,71 @@
+<html>
+
+<head>
+
+<script src="joint.all.min.js" type="text/javascript"></script>
+
+</head>
+<body>
+[%
+var search = Search.all.last();
+var states = new Sequence; // State names (Strings))
+var y = 50;%]
+
+[%=search.generations.size()%]
+<div id="myfsa"></div>
+
+<script type="text/javascript">
+Joint.paper("myfsa", [%=(search.generations.first().individuals.size()*100)+100%], [%=(search.generations.size()*150)+100%]);
+var fsa = Joint.dia.fsa;
+
+
+[%
+for (gen in search.generations) {%]
+var s_[%=y%] = fsa.State.create( { position : {x: 50, y: [%=y%]}, radius : 20, label : "Gen #[%=search.generations.indexOf(gen)%]", labelOffsetX : 0, labelOffsetY : 15, attrs : { fill : "whitesmoke" } } ); 
+[%
+	for (ind in gen.individuals) {
+		var stateID = ind.calculateCoordString();
+	
+		var x = (gen.individuals.indexOf(ind) * 100) + 150;
+		ind.toState(x, y);
+		states.add(stateID);
+	}
+	y = y + 150;
+}
+%]
+var all = [[% for (s in states) {%] [%=s%],[%}%]];
+
+[%for (gen in search.generations) {
+	for (ind in gen.individuals) {
+		ind.toJoint();	
+	}
+}%]
+
+
+</script>
+
+</body>
+</html>
+
+[%operation Individual toState(x: Integer, y : Integer) {%]
+var s[%=x%]_[%=y%] = fsa.State.create({ position: {x: [%=x%], y: [%=y%]}, label: "[%=self.fitness%]" [% if (self.elite) { %], attrs: { fill : "yellow" } [%}%] });
+[%
+}
+
+operation Individual toJoint() {
+	for (p in self.parents) {%]
+[%=p.calculateCoordString()%].joint([%=self.calculateCoordString()%], fsa.arrow).registerForever(all);
+[%
+	}
+}
+
+operation Individual calculateCoordString() : String {
+	var owningPop = Population.all.selectOne(p | p.individuals.includes(self));
+	var x = (owningPop.individuals.indexOf(self) * 100) + 150;
+	var owningPopIndex = Search.all.first().generations.indexOf(owningPop);	
+	var y = (owningPopIndex * 150) + 50;
+
+	return "s" + x.toString() + "_" + y.toString();
+}
+
+%]

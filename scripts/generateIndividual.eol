@@ -1,0 +1,57 @@
+/**
+  Generates a random individual (genotype) and converts it to its phenotypical form.
+ 	 
+  Input models:
+  		SEARCH 	- the search model, to contain the individual
+ 		MM		- metamodel under test
+  		FIN		- finitisation model of MM 
+  		MOD		- the phenotype (conforming to MM)
+
+	Input parameters:
+	- minNumSegments, maxNumSegments, minNumFeaturePairs, maxNumFeaturePairs, maxAllele
+
+  @author: James R. Williams
+ */
+import "pancake/algs/util/util.eol";
+import "pancake/algs/ops/genotype2phenotype.eol";
+import "pancake/algs/util/finitisationUtil.eol";
+
+
+// G2P required variables
+var instantiableClasses;
+var unassignedReferences;
+var modelObjects;
+var objectSegmentMap;
+var featureFeaturePairMap;
+var featureCollection;
+
+// Setup
+var random = new Native('java.util.Random'); //(seed.asLong());
+
+// Load configuration parameters
+var minNumSegments = minNumSegmentsParam.asInteger();
+var maxNumSegments = maxNumSegmentsParam.asInteger();
+var minNumFeaturePairs = minNumFpsParam.asInteger();
+var maxNumFeaturePairs = maxNumFpsParam.asInteger();
+var maxAllele = maxAlleleParam.asInteger();
+
+// 1. Generate a random individual
+var ind = new SEARCH!Individual;
+var indPhenotype;
+var numSegments = random.nextInt(maxNumSegments-minNumSegments+1) + minNumSegments;
+
+for (i in Sequence{1..numSegments}) { 
+	var numFps = random.nextInt(maxNumFeaturePairs-minNumFeaturePairs+1) + minNumFeaturePairs;
+	ind.segments.add(randomlyCreateSegment(numFps, maxAllele));
+}
+
+// 2. Convert to phenotype and add to MOD
+indPhenotype = ind.toPhenotype();
+MOD.getResource().getContents().add(indPhenotype);
+
+// 3. Export the size of the individual
+
+var individualSize = 0;
+for (s in ind.segments) {
+	individualSize  = individualSize + (s.featurePairs.size() * 2) + 1;
+} 

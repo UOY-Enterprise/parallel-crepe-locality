@@ -1,0 +1,40 @@
+/**
+ * A genetic algorithm for Crepe.
+ * 
+ * Input models:
+ * 		SEARCH - the search model, which stores the generations
+ * 		POP (optional) - used to initialise the population
+ * 		CONF - configuration
+ * 		FIN
+ * 		MM
+ * @author: James R. Williams
+ */
+import 'algs/util/util.eol';
+import 'algs/ops/genotype2phenotype.eol';
+import 'algs/ops/controlOperations.eol';
+import 'algs/ops/geneticOperations.eol';
+
+// Utility variables
+var t = 0; // iteration counter
+//var random = setupRandomSeed();
+var maxAllele = 1000; // TODO: Add to config/determine automatically
+
+// Necessary for genotype to phenotype mapping
+var unassignedReferences;
+var modelObjects;
+var instantiableClasses;
+var objectSegmentMap;
+var featureFeaturePairMap;
+var fitFunctionIsEol = false;
+
+// Now go
+var population = initialise();
+population.evaluate();
+
+while (not terminate()) {
+	t = t + 1;
+	t.println("Generation #");
+	population = population.selectAndBreed();
+	population.evaluate();
+}
+

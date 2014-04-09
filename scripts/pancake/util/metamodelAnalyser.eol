@@ -1,0 +1,55 @@
+/**
+ * metamodelAnalyser.eol
+ * @author : James R. Williams
+ *
+ * This module analyses the input metamodel to determine what should be the appropriate
+ * size of individuals in the GA.
+ */
+import "../algs/util/finitisationUtil.eol";
+ 
+/**
+ * @return A sequence of size 3. Index 0 is the number of segments; Index 1 is
+ * 		   the maximum number of feature pairs; Index 2 is the minimum #FPs.
+ */
+operation calculateIndividualSize() : Sequence {
+	var numSegments;
+	var maxFps;
+	var minFps;
+	
+	var classes = MM!EClass.all.select(c | not c.`abstract` and not c.interface).sortBy(c | c.name);
+	var upperBounds = new Sequence;
+	var lowerBounds = new Sequence;
+	var featureCount = 0;
+	for (c in classes) {
+		// We ignore the root as well as we cannot assign values to its features
+		if (c.isIgnored() or c == getRootClass()) continue;
+		
+		var numFeatures = c.eAllStructuralFeatures.size(); 
+		
+		for (f in c.eAllStructuralFeatures) {
+			lowerBounds.add(f.lowerBound);
+			
+			if (f.upperBound == -1) {
+				// Check if the target class is scoped
+				var scope = FIN!ScopeFinitisation.all.selectOne(s | s.object = f.eType);
+				if (scope.isDefined()) {
+					upperBounds.add(scope.max);
+				} else {
+					upperBounds.add(-1);
+				}
+			} else {
+				upperBounds.add(f.upperBound);
+			}
+		}
+	}
+	
+	lowerBounds.println();
+	upperBounds.println();
+	
+	numSegments = 20; //TODO
+	minFps = lowerBounds.sortBy(l|l).first();
+	if (upperBounds.includes(-1)) maxFps = -1;
+	else maxFps = upperBounds.sortBy(l|l).last();
+	
+	return Sequence{ numSegments, maxFps, minFps };
+}

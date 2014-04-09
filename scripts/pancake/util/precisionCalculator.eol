@@ -1,0 +1,75 @@
+/**
+ * precisionCalculator.eol
+ * @author : James R. Williams
+ *
+ * This module provides a means of comparing two individuals to produce a precision score.
+ */
+import "../algs/ops/phenotype2genotype.eol";
+
+// Global variables required by the operations:
+var unassignedReferences;
+var instantiableClasses;
+var individual : SEARCH!Individual;
+var segmentObjectMap : Map; // <Segment, Object>
+
+/**
+ * 
+ * @param i1 - The reference solution. I.e. the target model 
+ * @param i2 - The candidate solution.
+ * @returns  - Precision score 
+ */
+operation compareIndividuals(i1 : SEARCH!Individual, i2: SEARCH!Individual) : Real {
+	var culmulativeScore : Real = 0.0;
+	
+	for (s in i1.segments) {
+		var targets = i2.segments.select(s2 | s2.classBit == s.classBit);
+		var scores = new Sequence;
+		for (t in targets) {
+			scores.add(compareSegments(s, t));
+		}	
+		
+		culmulativeScore = culmulativeScore + scores.max();
+		
+		// This approach may allow target segments to be matched
+		// multiple times, i.e. it is not the 'modified'-precision technique
+		// used in BLEU
+		// SOLUTION: Actually this DOESN'T MATTER because i1 IS the target (reference)
+		// solution, so duplicate segments in the candidate won't produce false positives.
+	}
+	
+	return (culmulativeScore / i1.segments.size().asReal());
+}
+
+/** 
+ * @param s1 : reference solution segment
+ * @param s2 : candidate solution segment
+ */
+operation compareSegments(s1: SEARCH!Segment, s2 : SEARCH!Segment) : Real {
+
+	if (s1.classBit <> s2.classBit) return 0.0;
+
+	if (s1.featurePairs.size() == 0) return 1.0;
+
+	var numFpMatches = 0;
+	
+	// Order of the FPs doesn't matter as we're SELECTING. HOWEVER, need to ensure that
+	// this doesn't suffer duplicate matches. 
+	for (fp in s1.featurePairs) {
+		if (s2.featurePairs.select(fp2 | fp2.featureSelectorBit == fp.featureSelectorBit and
+										 fp2.featureValueBit == fp.featureValueBit).size() > 0) {
+			numFpMatches = numFpMatches + 1;								 
+		}
+	}
+	return numFpMatches.asReal() / s1.featurePairs.size().asReal();
+}
+
+operation SEARCH!Individual sort() : SEARCH!Individual {
+
+	for (s in self.segments) {
+		s.featurePairs = s.featurePairs.sortBy(f| f.featureSelectorBit);
+	}
+
+	self.segments = self.segments.sortBy(s | s.classBit);
+
+	return self;
+}

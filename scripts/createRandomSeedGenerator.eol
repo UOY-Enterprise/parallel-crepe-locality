@@ -1,0 +1,2 @@
+
+var random = new Native('java.util.Random')(seed.asLong());

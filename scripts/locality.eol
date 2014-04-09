@@ -1,0 +1,183 @@
+/**
+ * A script for calculating the locality of the representation wrt an input metamodel
+ * 
+ * Input models:
+ * 		SEARCH 	- the search model, no need to store
+ * 		MM		- metamodel under test
+ * 		FIN		- finitisation model of MM 
+
+	Input parameters:
+	- logRoot, seed, geneSampleSize, numModels, minNumSegments, 
+	maxNumSegments, minNumFeaturePairs, maxNumFeaturePairs, maxAllele
+
+ * @author: James R. Williams
+ */
+import "pancake/algs/util/util.eol";
+import "pancake/algs/ops/genotype2phenotype.eol";
+import "pancake/algs/util/finitisationUtil.eol";
+
+
+// G2P required variables
+var instantiableClasses;
+var unassignedReferences;
+var modelObjects;
+var objectSegmentMap;
+var featureFeaturePairMap;
+var featureCollection;
+
+// Setup
+var random = new Native('java.util.Random')(seed.asLong());
+var start = new Native('java.util.Date');
+new Native("java.io.File")(resultsDir).mkdir();
+var logLocation = resultsDir + identifier + "_" + start.getTime().asString() + ".csv";
+var fw = new Native('java.io.FileWriter')(logLocation);
+var out = new Native('java.io.BufferedWriter')(fw);
+
+// Go!
+calculateLocality();
+
+/**
+ * The grunt.
+ */
+operation calculateLocality() {
+
+	// Edit distance
+	var distanceTool = new Native("jw.research.crepe.tools.locality.EditDistanceTool");
+
+	// Load configuration parameters
+	var numModels = numModelsParam.asInteger();
+	var minNumSegments = minNumSegmentsParam.asInteger();
+	var maxNumSegments = maxNumSegmentsParam.asInteger();
+	var minNumFeaturePairs = minNumFpsParam.asInteger();
+	var maxNumFeaturePairs = maxNumFpsParam.asInteger();
+	var maxAllele = maxAlleleParam.asInteger();
+	
+	// ALEX: There is one potential place where parallelism can be
+	// added. There is, however, the issue of storing the results. 
+	// After each iteration the results are written to the same 
+	// CSV. We would need to think of a nice way to address
+	// this. 
+	for (i in Sequence{1..numModels}) {
+	
+		"Model ".print() + i.print() + " of ".print() + numModels.print();
+		new Native('java.util.Date').println(" at ");
+	
+		// 1. Generate a random individual
+		var ind = new SEARCH!Individual;
+		var indPhenotype;
+		var numSegments = random.nextInt(maxNumSegments-minNumSegments+1) + minNumSegments;
+		
+		for (i in Sequence{1..numSegments}) { 
+			var numFps = random.nextInt(maxNumFeaturePairs-minNumFeaturePairs+1) + minNumFeaturePairs;
+			ind.segments.add(randomlyCreateSegment(numFps, maxAllele));
+		}
+		
+		ind.println();
+		//"===============".println();
+		
+		out.write("" + i + ",ORIGINAL,0," + ind.toString());
+		out.newLine();
+		out.flush();
+		
+		indPhenotype = ind.toPhenotype();
+		MOD.getResource().getContents().add(indPhenotype);
+		
+		// 3. Analyse the neighbours
+		var mutant = ind.duplicate();
+		
+		// 		Class bits
+		for (s in mutant.segments) {
+			var originalClassBit = s.classBit;
+			
+			// Assign all possibilities and evaluate
+			for (j in Sequence{1..geneSampleSize.asInteger()}) {
+				//if (newCB == originalClassBit) continue;
+				var newCB = random.nextInt(maxAllele+1);
+			
+			
+				// Assign the new bit (mutate)
+				s.classBit = newCB;
+				var mutPhenotype = mutant.toPhenotype();
+				MOD2.getResource().getContents().add(mutPhenotype);
+				
+				//mutant.println();
+
+				// Calculate edit distance
+				var distance = distanceTool.calculateEditDistance(MOD, MOD2);
+
+				// Save to results model 
+				out.write("" + i + ",CB," + distance);// + "," + mutant.toString());
+				out.newLine();
+				out.flush();
+				
+				// Clean up 
+				MOD2.getResource().getContents().clear();
+				delete mutPhenotype;
+			}
+			
+			// Reset the bit
+			s.classBit = originalClassBit;
+		}
+
+		//		Feature pairs
+		for (fp in mutant.segments.collect(s | s.featurePairs).flatten()) {
+			var originalFSB = fp.featureSelectorBit;
+			var originalFVB = fp.featureValueBit;
+			
+			for (newFSB in Sequence{1..geneSampleSize.asInteger()}) {
+				if (newFSB == originalFSB) continue;
+				
+				// Assign the new bit (mutate)
+				fp.featureSelectorBit = newFSB;
+				var mutPhenotype = mutant.toPhenotype();
+				MOD2.getResource().getContents().add(mutPhenotype);
+
+				// Calculate edit distance
+				var distance = distanceTool.calculateEditDistance(MOD, MOD2);
+				
+				// Save results
+				out.write("" + i + ",FSB," + distance);// + "," + mutant.toString());
+				out.newLine();
+				out.flush();
+				
+				// Clean up 
+				delete mutPhenotype;
+				MOD2.getResource().getContents().clear();
+			}
+			
+			// Reset
+			fp.featureSelectorBit = originalFSB;
+			
+			for (newFVB in Sequence{1..geneSampleSize.asInteger()}) {
+				if (newFVB == originalFVB) continue;
+				
+				// Assign the new bit (mutate)
+				fp.featureValueBit = newFVB;
+				var mutPhenotype = mutant.toPhenotype();
+				MOD2.getResource().getContents().add(mutPhenotype);
+
+				// Calculate edit distance
+				var distance = distanceTool.calculateEditDistance(MOD, MOD2);
+				
+				// Save results
+				out.write("" + i + ",FVB," + distance);// + "," + mutant.toString());
+				out.newLine();
+				out.flush();
+				
+				// Clean up 
+				delete mutPhenotype;
+				MOD2.getResource().getContents().clear();
+			}	
+			
+			// Reset
+			fp.featureValueBit = originalFVB;
+		}
+		
+		// Clean up round
+		delete mutant;
+		delete ind;
+		delete indPhenotype;
+		out.flush();
+	}
+	out.close();
+}

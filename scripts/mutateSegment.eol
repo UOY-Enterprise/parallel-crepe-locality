@@ -1,0 +1,125 @@
+/**
+ * Mutates a given
+ * 
+ * Input models:
+ * 		SEARCH 	- the search model, no need to store
+ * 		MM		- metamodel under test
+ * 		FIN		- finitisation model of MM 
+
+	Input parameters:
+	- logRoot, seed, geneSampleSize, numModels, minNumSegments, 
+	maxNumSegments, minNumFeaturePairs, maxNumFeaturePairs, maxAllele
+
+ * @author: James R. Williams
+ */
+import "pancake/algs/util/util.eol";
+import "pancake/algs/ops/genotype2phenotype.eol";
+import "pancake/algs/util/finitisationUtil.eol";
+
+
+// G2P required variables
+var instantiableClasses;
+var unassignedReferences;
+var modelObjects;
+var objectSegmentMap;
+var featureFeaturePairMap;
+var featureCollection;
+
+// Setup
+var random = new Native('java.util.Random');//(seed.asLong());
+
+// Edit distance
+var distanceTool = new Native("jw.research.crepe.tools.locality.EditDistanceTool");
+
+// Load configuration parameters
+var minNumSegments = minNumSegmentsParam.asInteger();
+var maxNumSegments = maxNumSegmentsParam.asInteger();
+var minNumFeaturePairs = minNumFpsParam.asInteger();
+var maxNumFeaturePairs = maxNumFpsParam.asInteger();
+var maxAllele = maxAlleleParam.asInteger();
+
+// 1. Duplicate the individual for mutation
+var ind = SEARCH!Individual.all.first();
+var mutant = ind.duplicate();
+		
+// 2. Get the segment designated for mutation
+var s = mutant.segments.at(geneIndexForMutation.asInteger()); 
+
+// 3. Mutate the class bit
+var originalClassBit = s.classBit;
+	
+// Assign all possibilities and evaluate
+for (j in Sequence{1..geneSampleSize.asInteger()}) {
+	var newCB = random.nextInt(maxAllele+1);
+	if (newCB == originalClassBit) continue;
+
+	// Assign the new bit (mutate)
+	s.classBit = newCB;
+	var mutPhenotype = mutant.toPhenotype();
+	MOD2.getResource().getContents().add(mutPhenotype);
+	
+	// Calculate edit distance
+	var distance = distanceTool.calculateEditDistance(MOD, MOD2);
+
+	// Save to results model 
+	("" + geneIndexForMutation + ",CB," + distance).println(); // TODO: This is the result
+	
+	// Clean up 
+	MOD2.getResource().getContents().clear();
+	delete mutPhenotype;
+}
+	
+// 3b. Reset the class bit
+s.classBit = originalClassBit;
+
+// 4. Mutate the feature pairs
+for (fp in s.featurePairs) {
+	var originalFSB = fp.featureSelectorBit;
+	var originalFVB = fp.featureValueBit;
+	
+	for (newFSB in Sequence{1..geneSampleSize.asInteger()}) {
+		if (newFSB == originalFSB) continue;
+		
+		// Assign the new bit (mutate)
+		fp.featureSelectorBit = newFSB;
+		var mutPhenotype = mutant.toPhenotype();
+		MOD2.getResource().getContents().add(mutPhenotype);
+
+		// Calculate edit distance
+		var distance = distanceTool.calculateEditDistance(MOD, MOD2);
+		
+		// Save results
+		("" + geneIndexForMutation + ",FSB," + distance).println(); // TODO: This is the result
+		
+		// Clean up 
+		delete mutPhenotype;
+		MOD2.getResource().getContents().clear();
+	}
+	
+	// Reset
+	fp.featureSelectorBit = originalFSB;
+	
+	for (newFVB in Sequence{1..geneSampleSize.asInteger()}) {
+		if (newFVB == originalFVB) continue;
+		
+		// Assign the new bit (mutate)
+		fp.featureValueBit = newFVB;
+		var mutPhenotype = mutant.toPhenotype();
+		MOD2.getResource().getContents().add(mutPhenotype);
+
+		// Calculate edit distance
+		var distance = distanceTool.calculateEditDistance(MOD, MOD2);
+		
+		// Save results
+		("" + geneIndexForMutation + ",FVB," + distance).println(); // TODO: This is the result
+		
+		// Clean up 
+		delete mutPhenotype;
+		MOD2.getResource().getContents().clear();
+	}	
+	
+	// Reset
+	fp.featureValueBit = originalFVB;
+}
+		
+delete mutant;

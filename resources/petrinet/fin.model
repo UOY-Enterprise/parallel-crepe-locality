@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="ASCII"?>
+<MetamodelFinitisation xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="Finitisation" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore">
+  <rootObject href="jw.research.grammaticalevo.examples.petrinet#//Net"/>
+  <finitisations xsi:type="FeatureListFinitisation">
+    <feature xsi:type="ecore:EAttribute" href="jw.research.grammaticalevo.examples.petrinet#//Transition/name"/>
+    <list>ACED000574000161</list>
+    <list>ACED000574000162</list>
+    <list>ACED000574000163</list>
+  </finitisations>
+  <finitisations xsi:type="FeatureListFinitisation">
+    <feature xsi:type="ecore:EAttribute" href="jw.research.grammaticalevo.examples.petrinet#//Place/name"/>
+    <list>ACED000574000178</list>
+    <list>ACED000574000179</list>
+    <list>ACED00057400017A</list>
+  </finitisations>
+</MetamodelFinitisation>
