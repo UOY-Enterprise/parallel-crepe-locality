@@ -3,16 +3,6 @@
 
 	<property file="properties" />
 
-	<!-- <taskdef resource="net/sf/antcontrib/antcontrib.properties"> <classpath> 
-		<pathelement location="resources/dependencies/ant-contrib-0.6.jar"/> </classpath> 
-		</taskdef> <path id="epsilon-classpath"> <fileset dir="."> <include name="resources/dependencies/*.jar"/> 
-		</fileset> </path> -->
-
-	<!-- load Epsilon tasks -->
-	<!-- <taskdef resource="org/eclipse/epsilon/workflow/tasks/epsilontasks.xml" 
-		classpathref="epsilon-classpath" loaderref="epsilon-classpath.loader"/> <taskdef 
-		resource="org/eclipse/epsilon/workflow/tasks/emf/epsilonemftasks.xml" classpathref="epsilon-classpath" 
-		loaderref="epsilon-classpath.loader"/> -->
 	<target name="run">
 		<!-- Load models -->
 		<epsilon.emf.register file="resources/metamodels/finitisation.ecore" />
@@ -34,11 +24,11 @@
 
 		<epsilon.emf.loadModel name="SEARCH" modelFile="search.model"
 			metamodeluri="http://jw.research.crepe/search" read="false" store="false" />
+
 		<!-- Parallelise! -->
 		<iterate num="${numModels}" variable="csv">
 
-			<epsilon.eol src="scripts/generateIndividual.eol"
-				taskname="Generate individual">
+			<epsilon.eol src="scripts/generateIndividual.eol" taskname="Generate individual">
 				<model ref="MOD" /> <!-- Contains the generated individual -->
 				<model ref="MOD2" /> <!-- The phenotype of the generated individual -->
 				<model ref="MM" />
@@ -67,7 +57,7 @@
 					<parameter name="minNumFpsParam" value="${minNumFeaturePairs}" />
 					<parameter name="maxNumSegmentsParam" value="${maxNumSegments}" />
 					<parameter name="minNumSegmentsParam" value="${minNumSegments}" />
-					<exports ref="maxNumSegmentsParam" as="${variable}-${index}" ant="true"/>
+					<exports ref="resultsCsv" as="${variable}-${index}" ant="true"/>
 				</epsilon.eol>
 			</iterate>
 

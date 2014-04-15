@@ -16,6 +16,8 @@ import "pancake/algs/util/util.eol";
 import "pancake/algs/ops/genotype2phenotype.eol";
 import "pancake/algs/util/finitisationUtil.eol";
 
+// For export
+var resultsCsv;
 
 // G2P required variables
 var instantiableClasses;
@@ -62,7 +64,7 @@ for (j in Sequence{1..geneSampleSize.asInteger()}) {
 	var distance = distanceTool.calculateEditDistance(MOD, MOD2);
 
 	// Save to results model 
-	("" + geneIndexForMutation + ",CB," + distance).println(); // TODO: This is the result
+	resultsCsv = resultsCsv + "" + geneIndexForMutation + ",CB," + distance + "\n";
 	
 	// Clean up 
 	MOD2.getResource().getContents().clear();
@@ -89,7 +91,7 @@ for (fp in s.featurePairs) {
 		var distance = distanceTool.calculateEditDistance(MOD, MOD2);
 		
 		// Save results
-		("" + geneIndexForMutation + ",FSB," + distance).println(); // TODO: This is the result
+		resultsCsv = resultsCsv + "" + geneIndexForMutation + ",FSB," + distance + "\n";
 		
 		// Clean up 
 		delete mutPhenotype;
@@ -111,7 +113,7 @@ for (fp in s.featurePairs) {
 		var distance = distanceTool.calculateEditDistance(MOD, MOD2);
 		
 		// Save results
-		("" + geneIndexForMutation + ",FVB," + distance).println(); // TODO: This is the result
+		resultsCsv = resultsCsv + "" + geneIndexForMutation + ",FVB," + distance + "\n";
 		
 		// Clean up 
 		delete mutPhenotype;
