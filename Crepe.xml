@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<project name="locality-experiment" basedir="." default="run">
+
+	<property file="properties" />
+
+	<!-- <taskdef resource="net/sf/antcontrib/antcontrib.properties"> <classpath> 
+		<pathelement location="resources/dependencies/ant-contrib-0.6.jar"/> </classpath> 
+		</taskdef> <path id="epsilon-classpath"> <fileset dir="."> <include name="resources/dependencies/*.jar"/> 
+		</fileset> </path> -->
+
+	<!-- load Epsilon tasks -->
+	<!-- <taskdef resource="org/eclipse/epsilon/workflow/tasks/epsilontasks.xml" 
+		classpathref="epsilon-classpath" loaderref="epsilon-classpath.loader"/> <taskdef 
+		resource="org/eclipse/epsilon/workflow/tasks/emf/epsilonemftasks.xml" classpathref="epsilon-classpath" 
+		loaderref="epsilon-classpath.loader"/> -->
+	<target name="run">
+		<!-- Load models -->
+		<epsilon.emf.register file="resources/metamodels/finitisation.ecore" />
+		<epsilon.emf.register file="resources/metamodels/search.ecore" />
+
+		<epsilon.emf.register file="${metamodelFile}" />
+		<epsilon.emf.loadRegisteredMetamodel
+			name="MM" metamodeluri="${metamodelUri}" />
+
+		<epsilon.emf.loadModel name="FIN"
+			modelFile="${finitisationModel}" metamodelUri="Finitisation" read="true"
+			store="false" />
+
+		<epsilon.emf.loadModel name="MOD" modelFile="mod.model"
+			metamodelUri="${metamodelUri}" read="false" store="false" />
+
+		<epsilon.emf.loadModel name="MOD2" modelFile="mod2.model"
+			metamodelUri="${metamodelUri}" read="false" store="false" />
+
+		<epsilon.emf.loadModel name="SEARCH" modelFile="search.model"
+			metamodeluri="http://jw.research.crepe/search" read="false" store="false" />
+		<!-- Parallelise! -->
+		<iterate num="${numModels}" variable="csv">
+
+			<epsilon.eol src="scripts/generateIndividual.eol"
+				taskname="Generate individual">
+				<model ref="MOD" /> <!-- Contains the generated individual -->
+				<model ref="MOD2" /> <!-- The phenotype of the generated individual -->
+				<model ref="MM" />
+				<model ref="FIN" />
+				<model ref="SEARCH" />
+				<parameter name="maxAlleleParam" value="${maxAllele}" />
+				<parameter name="maxNumFpsParam" value="${maxNumFeaturePairs}" />
+				<parameter name="minNumFpsParam" value="${minNumFeaturePairs}" />
+				<parameter name="maxNumSegmentsParam" value="${maxNumSegments}" />
+				<parameter name="minNumSegmentsParam" value="${minNumSegments}" />
+				<exports ref="numSegments" as="numSegments" ant="true" />
+			</epsilon.eol>
+
+			<!-- Parallelise! -->
+			<iterate num="${numSegments}" variable="csv${index}">
+				<epsilon.eol src="scripts/mutateSegment.eol" taskname="Mutate individual">
+					<model ref="MOD" /> <!-- Contains the generated individual -->
+					<model ref="MOD2" /> <!-- The phenotype of the generated individual -->
+					<model ref="MM" />
+					<model ref="FIN" />
+					<model ref="SEARCH" />
+					<parameter name="geneIndexForMutation" value="${index}" />
+					<parameter name="geneSampleSize" value="${geneSampleSize}" />
+					<parameter name="maxAlleleParam" value="${maxAllele}" />
+					<parameter name="maxNumFpsParam" value="${maxNumFeaturePairs}" />
+					<parameter name="minNumFpsParam" value="${minNumFeaturePairs}" />
+					<parameter name="maxNumSegmentsParam" value="${maxNumSegments}" />
+					<parameter name="minNumSegmentsParam" value="${minNumSegments}" />
+					<exports ref="resultCsv" as="${variable}-${index}" ant="true"/>
+				</epsilon.eol>
+			</iterate>
+		</iterate>
+
+		<store ref="csv" name="results.csv" />
+		<get key="csv" />
+		
+	</target>
+</project>
